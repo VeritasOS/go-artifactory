@@ -109,6 +109,17 @@ func (r VirtualRepoConfig) MimeType() string {
 	return VirtualRepoMimeType
 }
 
+// DockerImages represents the list of docker images in a docker repo
+type DockerImages struct {
+	Repositories []string `json:"repositories,omitempty"`
+}
+
+// DockerImageTags represents the list of tags for an image in a docker repo
+type DockerImageTags struct {
+	Name string   `json:"name,omitempty"`
+	Tags []string `json:"tags,omitempty"`
+}
+
 // GetRepos returns all repos of the provided type
 func (client *Client) GetRepos(rtype string) ([]Repo, error) {
 	o := make(map[string]string)
@@ -164,4 +175,42 @@ func (client *Client) GetRepo(key string) (RepoConfig, error) {
 		fmt.Printf("fallthrough to default\n")
 		return dat, nil
 	}
+}
+
+// GetDockerRepoImages returns the docker images in the named repo
+func (client *Client) GetDockerRepoImages(key string) ([]string, error) {
+	var dat DockerImages
+
+	d, e := client.HTTPRequest(Request{
+		Verb: "GET",
+		Path: "/api/docker/" + key + "/v2/_catalog",
+	})
+	if e != nil {
+		return dat.Repositories, e
+	}
+	err := json.Unmarshal(d, &dat)
+	if err != nil {
+		return dat.Repositories, err
+	}
+
+	return dat.Repositories, nil
+}
+
+// GetDockerRepoImageTags returns the docker images in the named repo
+func (client *Client) GetDockerRepoImageTags(key, image string) ([]string, error) {
+	var dat DockerImageTags
+
+	d, e := client.HTTPRequest(Request{
+		Verb: "GET",
+		Path: "/api/docker/" + key + "/v2/" + image + "/tags/list",
+	})
+	if e != nil {
+		return dat.Tags, e
+	}
+	err := json.Unmarshal(d, &dat)
+	if err != nil {
+		return dat.Tags, err
+	}
+
+	return dat.Tags, nil
 }
